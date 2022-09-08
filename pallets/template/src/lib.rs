@@ -168,6 +168,10 @@ pub mod pallet {
 		StorageOverflow,
 	}
 
+	impl<T: Config> Pallet<T> {
+		// TODO helper function
+	}
+
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
@@ -184,27 +188,22 @@ pub mod pallet {
 		pub fn like_a_tweet(origin: OriginFor<T>, tweet_id: u32) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
-			let tweets = match <TweetsStore<T>>::get() {
+			let mut tweets = match <TweetsStore<T>>::get() {
 				Some(tws) => tws,
 				None => vec![],
 			};
 
-			let mut temp_tweets = tweets.clone();
-
 			let mut total_likes = 0;
-			for (index, tweet) in tweets.iter().enumerate() {
-				let mut tw = tweet.clone();
-				if tw.id == tweet_id {
-					total_likes = tw.likes + 1;
-					tw.likes = total_likes;
-					tw.user_liked_tweet.push(who.clone());
-					temp_tweets.remove(index.clone());
-					temp_tweets.insert(index, tw);
+			for tweet in tweets.iter_mut() {
+				if tweet.id == tweet_id {
+					total_likes = tweet.likes + 1;
+					tweet.likes = total_likes; // TODO remove this get it from user_liked length
+					tweet.user_liked_tweet.push(who.clone());
 					break;
 				}
 			}
 
-			<TweetsStore<T>>::put(temp_tweets);
+			<TweetsStore<T>>::put(tweets);
 
 			Self::deposit_event(Event::UserLikedATweet(total_likes, who));
 			Ok(())
